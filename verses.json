@@ -1,0 +1,38 @@
+{
+  "john 1:1": {
+    "verse": "John 1:1",
+    "language": "Greek",
+    "words": [
+      {
+        "lemma": "\u1f18\u03bd",
+        "transliteration": "en",
+        "strong": "G1722",
+        "gloss": "in"
+      },
+      {
+        "lemma": "\u1f00\u03c1\u03c7\u1fc7",
+        "transliteration": "arch\u0113",
+        "strong": "G746",
+        "gloss": "beginning"
+      },
+      {
+        "lemma": "\u1f26\u03bd",
+        "transliteration": "\u0113n",
+        "strong": "G1510",
+        "gloss": "was"
+      },
+      {
+        "lemma": "\u1f41",
+        "transliteration": "ho",
+        "strong": "G3588",
+        "gloss": "the"
+      },
+      {
+        "lemma": "\u039b\u03cc\u03b3\u03bf\u03c2",
+        "transliteration": "Logos",
+        "strong": "G3056",
+        "gloss": "Word"
+      }
+    ]
+  }
+}
