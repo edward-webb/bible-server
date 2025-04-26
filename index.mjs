@@ -1,18 +1,17 @@
-import cors from 'cors';
-app.use(cors());
 import express from 'express';
 import axios from 'axios';
+import * as cheerio from 'cheerio';
 import cors from 'cors';
+import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
-import dotenv from 'dotenv';
-import { load } from 'cheerio';
 
 dotenv.config();
-const app = express();
-app.use(cors());
-const PORT = 5000;
 
+const app = express();      // ✅ Create app first
+
+app.use(cors());            // ✅ THEN use app
+const PORT = process.env.PORT || 5000;
 const ESV_API_KEY = process.env.ESV_API_KEY;
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const GOOGLE_CX = process.env.GOOGLE_CX;
@@ -73,10 +72,10 @@ app.get('/api/original', (req, res) => {
   const match = input.match(/^([1-3]? ?[a-z ]+)\s+(\d+):(\d+)$/i);
   if (!match) return res.status(400).json({ error: 'Invalid verse format. Use "Book Chapter:Verse"' });
 
-  const key = \`\${match[1].trim().toLowerCase()} \${match[2]}:\${match[3]}\`;
+  const key = `${match[1].trim().toLowerCase()} ${match[2]}:${match[3]}`;
   const data = verses[key];
 
-  if (!data) return res.status(404).json({ error: \`Verse "\${input}" not found in local data.\` });
+  if (!data) return res.status(404).json({ error: `Verse "${input}" not found in local data.` });
 
   res.json(data);
 });
@@ -86,7 +85,7 @@ app.get('/api/answer', async (req, res) => {
   const question = req.query.question;
   if (!question) return res.status(400).json({ error: 'Question is required' });
 
-  const url = \`https://www.googleapis.com/customsearch/v1?q=\${encodeURIComponent(question)}&key=\${GOOGLE_API_KEY}&cx=\${GOOGLE_CX}\`;
+  const url = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(question)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}`;
 
   try {
     const response = await axios.get(url);
@@ -109,5 +108,5 @@ app.get('/api/answer', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Fixed server running at http://localhost:${PORT}`);
+  console.log('✅ Fixed server running at http://localhost:' + PORT);
 });
