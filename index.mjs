@@ -1,21 +1,18 @@
 import express from 'express';
 import axios from 'axios';
-import * as cheerio from 'cheerio';
+import cheerio from 'cheerio';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
-
+import dotenv from 'dotenv';
 dotenv.config();
 
-const app = express();      // ✅ Create app first
-
-app.use(cors());            // ✅ THEN use app
+const app = express();
+app.use(cors());
 const PORT = process.env.PORT || 5000;
+
 const ESV_API_KEY = process.env.ESV_API_KEY;
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-const GOOGLE_CX = process.env.GOOGLE_CX;
-const verses = JSON.parse(fs.readFileSync(path.join(path.resolve(), 'verses.json'), 'utf8'));
+const verses = JSON.parse(fs.readFileSync(path.join('./server/verses.json'), 'utf8'));
 
 // /api/facts
 app.get('/api/facts', async (req, res) => {
@@ -25,38 +22,26 @@ app.get('/api/facts', async (req, res) => {
   try {
     const bibleApi = await axios.get(`https://bible-api.com/${encodeURIComponent(passage)}`);
     results.bibleAPI = bibleApi.data;
-  } catch (err) {
-    console.error('Bible-API error:', err.message);
+  } catch {
     results.bibleAPI = { error: 'Failed to fetch Bible-API' };
   }
 
-  try {
-    const labsBible = await axios.get(`https://labs.bible.org/api/?passage=${encodeURIComponent(passage)}&type=json`, {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    });
-    results.labsBible = labsBible.data[0];
-  } catch (err) {
-    console.error('Labs.Bible error:', err.message);
-    results.labsBible = { error: 'Failed to fetch Labs.Bible' };
-  }
+  // Labs.Bible removed because they block external servers now (403 error)
 
   try {
     const esvApi = await axios.get(`https://api.esv.org/v3/passage/text/?q=${encodeURIComponent(passage)}`, {
       headers: { 'Authorization': `Token ${ESV_API_KEY}` }
     });
     results.esv = esvApi.data.passages ? esvApi.data.passages[0] : 'No ESV result';
-  } catch (err) {
-    console.error('ESV error:', err.message);
+  } catch {
     results.esv = { error: 'Failed to fetch ESV' };
   }
 
   try {
-    const gotQuestions = await axios.get(`https://www.gotquestions.org/${passage.replace(/\s+/g, '-').replace(/:/g, '-')}.html`, {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    });
-    const $ = load(gotQuestions.data);
+    const gotQuestionsPage = await axios.get(`https://www.gotquestions.org/${passage.replace(/\s+/g, '-').replace(/:/g, '-')}.html`);
+    const $ = cheerio.load(gotQuestionsPage.data);
     results.gotQuestions = {
-      summary: $('meta[name="description"]').attr('content') || 'No summary found'
+      summary: $('meta[name="description"]').attr('content') || 'No summary found',
     };
   } catch (err) {
     console.error('GotQuestions error:', err.message);
@@ -85,13 +70,16 @@ app.get('/api/answer', async (req, res) => {
   const question = req.query.question;
   if (!question) return res.status(400).json({ error: 'Question is required' });
 
-  const url = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(question)}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}`;
+  const apiKey = process.env.GOOGLE_API_KEY;
+  const cx = process.env.GOOGLE_CX;
+
+  const searchUrl = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(question)}&key=${apiKey}&cx=${cx}`;
 
   try {
-    const response = await axios.get(url);
+    const response = await axios.get(searchUrl);
     const items = response.data.items;
 
-    if (!items || items.length === 0) {
+    if (!items || !items.length) {
       return res.json({ summary: 'No answer found for your question.' });
     }
 
@@ -108,5 +96,6 @@ app.get('/api/answer', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log('✅ Fixed server running at http://localhost:' + PORT);
+  console.log(`✅ Fixed server running at http://localhost:${PORT}`);
 });
+// console.log(`✅ Fixed server running at http://localhost:${PORT}`);
