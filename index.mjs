@@ -12,7 +12,8 @@ app.use(cors());
 const PORT = process.env.PORT || 5000;
 
 const ESV_API_KEY = process.env.ESV_API_KEY;
-const verses = JSON.parse(fs.readFileSync(path.join('./server/verses.json'), 'utf8'));
+const verses = JSON.parse(fs.readFileSync(path.join('./verses.json'), 'utf8'));
+//       <p>Loading original verse...</p>
 
 // /api/facts
 app.get('/api/facts', async (req, res) => {
