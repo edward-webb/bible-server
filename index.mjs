@@ -1,6 +1,6 @@
 import express from 'express';
 import axios from 'axios';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';  // ✅ <-- FIXED
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
