@@ -66,36 +66,55 @@ app.get('/api/original', (req, res) => {
   res.json(data);
 });
 
-// /api/answer
+// /api/Gotanswer
+//---------------------------changed------------------------------------------
 app.get('/api/answer', async (req, res) => {
   const question = req.query.question;
   if (!question) return res.status(400).json({ error: 'Question is required' });
 
-  const apiKey = process.env.GOOGLE_API_KEY;
-  const cx = process.env.GOOGLE_CX;
-
-  const searchUrl = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(question)}&key=${apiKey}&cx=${cx}`;
+  const searchQuery = question.trim().replace(/\s+/g, '+');
+  const gotQSearchUrl = `https://www.gotquestions.org/search.php?query=${searchQuery}`;
+  const googleSearchUrl = `https://www.googleapis.com/customsearch/v1?q=${searchQuery}&key=${process.env.GOOGLE_API_KEY}&cx=${process.env.GOOGLE_CX}`;
 
   try {
-    const response = await axios.get(searchUrl);
-    const items = response.data.items;
+    // First: Try GotQuestions
+    const searchPage = await axios.get(gotQSearchUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const $ = cheerio.load(searchPage.data);
+    const firstLink = $('a[href*=".html"]').filter((i, el) => $(el).attr('href').startsWith('/')).first().attr('href');
 
-    if (!items || !items.length) {
-      return res.json({ summary: 'No answer found for your question.' });
+    if (firstLink) {
+      const fullArticle = `https://www.gotquestions.org${firstLink}`;
+      const articlePage = await axios.get(fullArticle);
+      const $$ = cheerio.load(articlePage.data);
+      const title = $$('h1').first().text().trim();
+      const summary = $$('meta[name="description"]').attr('content') || 'No summary found.';
+
+      return res.json({ title, summary, source: 'GotQuestions.org', link: fullArticle });
     }
 
-    const first = items[0];
-    res.json({
-      title: first.title,
-      summary: first.snippet,
-      link: first.link
-    });
+    // If GotQuestions fails, try Google CSE
+    const googleRes = await axios.get(googleSearchUrl);
+    const items = googleRes.data.items;
+
+    if (items && items.length) {
+      const first = items[0];
+      return res.json({
+        title: first.title,
+        summary: first.snippet,
+        link: first.link,
+        source: 'Google CSE'
+      });
+    }
+
+    return res.json({ summary: 'No answer found from GotQuestions or Google.' });
+
   } catch (err) {
-    console.error('Google Search Error:', err.message);
+    console.error('❌ Q&A Fallback Error:', err.message);
     res.status(500).json({ error: 'Failed to fetch answer' });
   }
 });
 
+//-----------------------------------------------------------------
 app.listen(PORT, () => {
   console.log(`✅ Fixed server running at http://localhost:${PORT}`);
 });
